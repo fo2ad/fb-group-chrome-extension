@@ -37,6 +37,7 @@ chrome.runtime.onMessage.addListener(
                 groupId: safeCall(getGroupId),
                 postId: safeCall(getPostId),
                 postText: safeCall(getPostText),
-                author: safeCall(getAuthor)
+                author: safeCall(getAuthor),
+                url: document.location.href
             });
     });

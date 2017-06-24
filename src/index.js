@@ -126,8 +126,18 @@ const saveMainPost = (token, sheetId, sheet, cats) => {
     )
 };
 
-const checkRecordExistence = (token, sheetId, postId) => {
-
+const checkPostExistence = (token, mainSheetFileId, category, postId) => {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${mainSheetFileId}/values/${category}!A:E`;
+    return fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `OAuth ${token}`,
+            'Content-Type': 'application/json'
+        },
+    }).then(response => response.json())
+        .then(response => response.values)
+        .then((values = []) => values.map(row => row[0]))
+        .then((ids = []) => ids.includes(postId));
 };
 
 const saveCategories = (categoriesMap, cb) => {
@@ -168,40 +178,77 @@ parseTab = (tab, cb) => {
     }
 };
 
+const getInputCategory = () => {
+    return $("#input_category").val();
+};
+
+const getGoogleToken = () => {
+    // Array of API discovery doc URLs for APIs used by the quickstart
+    // const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+
+    return new Promise((resolve, reject) => {
+
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+        const googleAuth = new OAuth2('google', Object.assign({}, googleClient, {api_scope: SCOPES}));
+        googleAuth.authorize(() => {
+            resolve(googleAuth.getAccessToken());
+        });
+    });
+};
+
+const getFbToken = () => {
+    return new Promise((resolve, reject) => {
+        const FB_SCOPES = 'user_posts';
+        const fbAuth = new OAuth2('facebook', Object.assign({}, fbClient, {api_scope: FB_SCOPES}));
+        fbAuth.authorize(
+            () => {
+                resolve(fbAuth.getAccessToken())
+            }
+        )
+    });
+};
 
 $(() => {
     $("#btn_submit").on('click', e => {
-        // Array of API discovery doc URLs for APIs used by the quickstart
-        const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+        getGoogleToken().then(
+            token => {
+                chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                    chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, function(response) {
 
-        // Authorization scopes required by the API; multiple scopes can be
-        // included, separated by spaces.
-        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-        const FB_SCOPES = 'user_posts';
+                        const { postId, author = {}, postText = '', url } = response;
+                        getSheet(token, SPREAD_SHEET)
+                            .then(mainSheetFile => {
+                                if (+postId === MAIN_POST_ID) {
+                                    const cats = parseMainPost(response.postText);
+                                    saveMainPost(token, SPREAD_SHEET, mainSheetFile, cats);
+                                } else {
+                                    const category = getInputCategory();
+                                    const innerSheet = mainSheetFile.sheets
+                                        .map(sheet => sheet.properties.title)
+                                        .filter(title => title === category)[0] | null;
 
-        const googleAuth = new OAuth2('google', Object.assign({}, googleClient, {api_scope: SCOPES}));
-        const fbAuth = new OAuth2('facebook', Object.assign({}, fbClient, {api_scope: FB_SCOPES}));
-
-        googleAuth.authorize(function() {
-            // Ready for action, can now make requests with
-            const token = googleAuth.getAccessToken();
-
-            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, function(response) {
-
-                    const { postId } = response;
-                    getSheet(token, SPREAD_SHEET)
-                        .then(sheet => {
-                            if (+postId === MAIN_POST_ID) {
-                                const cats = parseMainPost(response.postText);
-                                saveMainPost(token, SPREAD_SHEET, sheet, cats);
-                            } else {
-                                // savePost(token, SPREAD_SHEET, sheet, )
-                            }
-                        });
+                                    if (!!category) {
+                                        let addSheetPromise;
+                                        if (!innerSheet) {
+                                            addSheetPromise = addSheet(token, SPREAD_SHEET, category);
+                                        } else {
+                                            console.log(innerSheet);
+                                            addSheetPromise = Promise.resolve(innerSheet)
+                                        }
+                                        addSheetPromise
+                                            .then(sheet => checkPostExistence(token, SPREAD_SHEET, category, postId))
+                                            .then(
+                                                alreadyExist => !alreadyExist &&
+                                                    saveToSpreadSheet(token, SPREAD_SHEET, `${category}!A:E`, [[
+                                                        postId, response.author.name, author.url, url, postText
+                                                    ]])
+                                            )
+                                    }
+                                }
+                            });
+                    });
                 });
-            });
-
-        })
+            }
+        );
     });
 });
