@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+
+  "name": "fb-groups",
+  "description": "Extension to save facebook group post to google spreadsheet",
+  "version": "1.0",
+  "content_security_policy": "script-src 'self' https://connect.facebook.net https://*.facebook.com/ 'sha256-novTKj2m5p9p956VWS+7kqmMOys9xlCruFDNuj67tF4=' ; object-src 'self'",
+
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/robots.txt*", "https://www.yahoo.com/robots.txt*"],
+      "js": ["oauth2/oauth2_inject.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.facebook.com/groups/*"],
+      "js": ["src/facebook.js", "lib/jquery.min.js"],
+      "run_at": "document_start"
+    }
+  ],
+
+  "browser_action": {
+    "default_icon": "images/icon.png",
+    "default_popup": "html/index.html",
+    "default_title": "facebook groups"
+  },
+
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "https://ajax.googleapis.com/",
+    "https://accounts.google.com/o/oauth2/token",
+    "https://www.facebook.com/groups/*",
+    "http://www.facebook.com/robots.txt*"
+  ],
+  "web_accessible_resources": [
+    "oauth2/oauth2.html"
+  ]
+}
