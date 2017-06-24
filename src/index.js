@@ -140,7 +140,7 @@ const saveCategories = (categoriesMap, cb) => {
 };
 
 const getAndSaveLink = (link, cb) => {
-    if (acitveTabs <= MAX_CONCURRENT_TABS) {
+    if (acitveTabs < MAX_CONCURRENT_TABS) {
         acitveTabs++;
         openLink(link, cb);
     } else {
