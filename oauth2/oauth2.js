@@ -130,9 +130,7 @@ OAuth2.prototype.getAccessAndRefreshTokens = function(authorizationCode, callbac
         // Callback with the data (incl. tokens).
         callback(that.adapter.parseAccessToken(xhr.responseText));
       } else {
-          console.log('xhr status was  not 200');
-          console.log(xhr.status);
-          console.log(xhr);
+          console.error('something wrong while getting access/refresh token status=' + xhr.status);
       }
     }
   });
@@ -174,16 +172,12 @@ OAuth2.prototype.refreshAccessToken = function(refreshToken, callback) {
   xhr.onreadystatechange = function(event) {
     if (xhr.readyState == 4) {
       if(xhr.status == 200) {
-        console.log('xhr status was 200');
-        console.log(xhr.responseText);
         // Parse response with JSON
         var obj = JSON.parse(xhr.responseText);
         // Callback with the tokens
         callback(obj.access_token, obj.expires_in, obj.refresh_token);
       }else {
-          console.log('xhr status was not 200');
-        console.log(xhr.status);
-        console.log(xhr.error);
+        console.error('something wrong while getting refresh token status=' + xhr.status);
       }
     }
   };
