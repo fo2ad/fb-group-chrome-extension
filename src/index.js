@@ -232,12 +232,41 @@ const init = () => {
     });
 };
 
+const onButtonClick = (postId, response, token, mainSheetFile) => {
+    if (+postId === MAIN_POST_ID) {
+        const cats = parseMainPost(response.postText);
+        saveMainPost(token, SPREAD_SHEET, mainSheetFile, cats);
+    } else {
+        const category = getInputCategory();
+        const innerSheet = mainSheetFile.sheets
+                .map(sheet => sheet.properties.title)
+                .filter(title => title === category)[0] | null;
+
+        if (!!category) {
+            let addSheetPromise;
+            if (!innerSheet) {
+                addSheetPromise = addSheet(token, SPREAD_SHEET, category);
+            } else {
+                console.log(innerSheet);
+                addSheetPromise = Promise.resolve(innerSheet)
+            }
+            addSheetPromise
+                .then(sheet => checkPostExistence(token, SPREAD_SHEET, category, postId))
+                .then(
+                    alreadyExist => !alreadyExist &&
+                    saveToSpreadSheet(token, SPREAD_SHEET, `${category}!A:E`, [[
+                        postId, response.author.name, response.author.url, response.url, response.postText
+                    ]])
+                )
+        }
+    }
+};
+
 $(() => {
     $('#div-fields').hide();
     $('#div-loading').show();
     init().then(
         data => {
-            console.log(data);
             $('select').select2({
                 tags: true,
                 data: data.mainSheetFile.sheets.map(sheet => ({
@@ -247,48 +276,9 @@ $(() => {
             });
             $('#div-loading').hide();
             $('#div-fields').show();
+            $('#btn_submit').on('click',
+                () => onButtonClick(data.tabDetails.postId, data.tabDetails, data.googleToken, data.mainSheetFile)
+            );
         }
     );
-    $("#btn_submit").on('click', e => {
-        getGoogleToken().then(
-            token => {
-                chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-                    chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, function (response) {
-
-                        const {postId, author = {}, postText = '', url} = response;
-                        getSheet(token, SPREAD_SHEET)
-                            .then(mainSheetFile => {
-                                if (+postId === MAIN_POST_ID) {
-                                    const cats = parseMainPost(response.postText);
-                                    saveMainPost(token, SPREAD_SHEET, mainSheetFile, cats);
-                                } else {
-                                    const category = getInputCategory();
-                                    const innerSheet = mainSheetFile.sheets
-                                            .map(sheet => sheet.properties.title)
-                                            .filter(title => title === category)[0] | null;
-
-                                    if (!!category) {
-                                        let addSheetPromise;
-                                        if (!innerSheet) {
-                                            addSheetPromise = addSheet(token, SPREAD_SHEET, category);
-                                        } else {
-                                            console.log(innerSheet);
-                                            addSheetPromise = Promise.resolve(innerSheet)
-                                        }
-                                        addSheetPromise
-                                            .then(sheet => checkPostExistence(token, SPREAD_SHEET, category, postId))
-                                            .then(
-                                                alreadyExist => !alreadyExist &&
-                                                saveToSpreadSheet(token, SPREAD_SHEET, `${category}!A:E`, [[
-                                                    postId, response.author.name, author.url, url, postText
-                                                ]])
-                                            )
-                                    }
-                                }
-                            });
-                    });
-                });
-            }
-        );
-    });
 });
