@@ -265,15 +265,29 @@ const onButtonClick = (postId, response, token, mainSheetFile) => {
 $(() => {
     $('#div-fields').hide();
     $('#div-loading').show();
+    const $select = $('select');
     init().then(
         data => {
-            $('select').select2({
+            $select.select2({
                 tags: true,
                 data: data.mainSheetFile.sheets.map(sheet => ({
                     id: sheet.properties.title,
                     text: sheet.properties.title,
                 }))
             });
+
+            $select.trigger('open');
+            $select.trigger('close');
+            $select.on("select2:open", () =>{
+                setTimeout(() => {
+                    const height = $('.select2-dropdown').height() + 10;
+                    $('#btn_submit').css('margin-top', `${height}px`);
+                });
+            });
+            $select.on("select2:close", () =>{
+                $('#btn_submit').css('margin-top', 10);
+            });
+
             $('#div-loading').hide();
             $('#div-fields').show();
             $('#btn_submit').on('click',

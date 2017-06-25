@@ -9,4 +9,16 @@ body {
 
 select {
     width: 300px;
+    length: 300px;
+}
+
+button.primary {
+    color: white;
+    background-color: #0052CC;
+    margin-top: 10px;
+    width: 100%
+}
+
+img {
+    width: 100%;
 }
