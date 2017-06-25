@@ -3,33 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <title>Hello</title>
+    <link href="../css/select2.min.css" rel="stylesheet"/>
+    <link href="../css/main.css" rel="stylesheet"/>
+
     <script src="/oauth2/oauth2.js"></script>
     <script src="../lib/jquery.min.js"></script>
     <script src="../src/constants.js"></script>
     <script src="../src/index.js"></script>
+    <script src="../lib/select2.full.min.js"></script>
     <script>
-        window.fbAsyncInit = function() {
+        window.fbAsyncInit = function () {
             FB.init({
-                appId      : '1095386477229716',
-                xfbml      : true,
-                version    : 'v2.9'
+                appId: '1095386477229716',
+                xfbml: true,
+                version: 'v2.9'
             });
             FB.AppEvents.logPageView();
         };
 
-        (function(d, s, id){
+        (function (d, s, id) {
             var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) {return;}
-            js = d.createElement(s); js.id = id;
+            if (d.getElementById(id)) {
+                return;
+            }
+            js = d.createElement(s);
+            js.id = id;
             js.src = "https://connect.facebook.net/en_US/sdk.js";
             fjs.parentNode.insertBefore(js, fjs);
         }(document, 'script', 'facebook-jssdk'));
     </script>
 </head>
 <body>
-<p><a target="_blank" href="https://www.facebook.com/dialog/oauth?client_id=1095386477229716&response_type=token&redirect_uri=http://www.yahoo.com/robots.txt">Facebook Connect</a></p>
-
-<input type="text" />
-<button id="btn_submit" type="button">Save</button>
+<div id="div-fields">
+    <select class="input_select" data-placeholder="Select Your Options">
+    </select>
+    <button id="btn_submit" type="button">Save</button>
+</div>
+<div id="div-loading">
+    <img src="../images/loading.gif">
+</div>
 </body>
 </html>

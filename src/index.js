@@ -3,16 +3,16 @@ const MAX_CONCURRENT_TABS = 1;
 let acitveTabs = 0;
 
 const parseMainPost = (post) => {
-    const lines =   post.split('\n');
+    const lines = post.split('\n');
     const indexes = lines
-        .map((line, index) => !isNaN(+line[0]) && line.length > 1 ? index : null )
+        .map((line, index) => !isNaN(+line[0]) && line.length > 1 ? index : null)
         .filter(item => !!item);
     indexes.push(lines.length - 1);
     const cats = [];
-    for (let i = 0; i < indexes.length; i++ ) {
+    for (let i = 0; i < indexes.length; i++) {
         const index = indexes[i];
         const name = lines[index];
-        const links = lines.slice(index, indexes[i+1])
+        const links = lines.slice(index, indexes[i + 1])
             .map(ls => ls.split(' ').map(l => l.trim()))
             .reduce((items, current, index) => [...items, ...current], [])
             .filter(link => link.indexOf('https') === 0);
@@ -25,7 +25,7 @@ const parseMainPost = (post) => {
 };
 
 const saveToSpreadSheet = (token, spreadsheetId, range, values) => {
-    const url =`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`;
     const body = {
         range: range,
         "majorDimension": "ROWS",
@@ -81,7 +81,7 @@ const getSheet = (token, sheetId) => {
 };
 
 const getFBPost = (fbToken, postId) => {
-     const url = `https://graph.facebook.com/v2.9/${postId}`;
+    const url = `https://graph.facebook.com/v2.9/${postId}`;
     return fetch(url, {
         method: 'GET',
         headers: {
@@ -98,7 +98,7 @@ const saveMainPost = (token, sheetId, sheet, cats) => {
     const promises = cats.map(
         cat => {
             let addSheetPromise;
-            if(!sheets.includes(cat.name)) {
+            if (!sheets.includes(cat.name)) {
                 addSheetPromise = addSheet(token, sheetId, cat.name)
                     .then(response => response.replies.map(reply => reply.addSheet));
 
@@ -143,7 +143,7 @@ const checkPostExistence = (token, mainSheetFileId, category, postId) => {
 const saveCategories = (categoriesMap, cb) => {
     Object.keys(categoriesMap).forEach(
         key => {
-            const { category } = categoriesMap[key];
+            const {category} = categoriesMap[key];
             category.links.forEach(link => getAndSaveLink(link, data => cb(category, link, data)));
         }
     )
@@ -168,7 +168,7 @@ openLink = (link, cb) => {
 };
 
 parseTab = (tab, cb) => {
-    if (tab.status === 'loading'){
+    if (tab.status === 'loading') {
         setTimeout(() => chrome.tabs.query({url: tab.url}, tabs => parseTab(tabs[0], cb)), 1000);
     } else {
         chrome.tabs.sendMessage(tab.id, {type: 'post-data'}, response => {
@@ -179,7 +179,7 @@ parseTab = (tab, cb) => {
 };
 
 const getInputCategory = () => {
-    return $("#input_category").val();
+    return $('select').val();
 };
 
 const getGoogleToken = () => {
@@ -214,19 +214,18 @@ const init = () => {
             chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, response => {
                 console.log('response is coming');
                 console.log(response);
-                getGoogleToken().
-                    then(
-                       token => {
-                           getSheet(token, SPREAD_SHEET)
-                               .then(mainSheetFile => {
-                                   const data = {
-                                       mainSheetFile,
-                                       googleToken : token,
-                                       tabDetails: response
-                                   };
-                                   resolve(data);
-                               })
-                       }
+                getGoogleToken().then(
+                    token => {
+                        getSheet(token, SPREAD_SHEET)
+                            .then(mainSheetFile => {
+                                const data = {
+                                    mainSheetFile,
+                                    googleToken: token,
+                                    tabDetails: response
+                                };
+                                resolve(data);
+                            })
+                    }
                 )
             })
         });
@@ -234,18 +233,29 @@ const init = () => {
 };
 
 $(() => {
+    $('#div-fields').hide();
+    $('#div-loading').show();
     init().then(
         data => {
             console.log(data);
+            $('select').select2({
+                tags: true,
+                data: data.mainSheetFile.sheets.map(sheet => ({
+                    id: sheet.properties.title,
+                    text: sheet.properties.title,
+                }))
+            });
+            $('#div-loading').hide();
+            $('#div-fields').show();
         }
     );
     $("#btn_submit").on('click', e => {
         getGoogleToken().then(
             token => {
-                chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                    chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, function(response) {
+                chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+                    chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, function (response) {
 
-                        const { postId, author = {}, postText = '', url } = response;
+                        const {postId, author = {}, postText = '', url} = response;
                         getSheet(token, SPREAD_SHEET)
                             .then(mainSheetFile => {
                                 if (+postId === MAIN_POST_ID) {
@@ -254,8 +264,8 @@ $(() => {
                                 } else {
                                     const category = getInputCategory();
                                     const innerSheet = mainSheetFile.sheets
-                                        .map(sheet => sheet.properties.title)
-                                        .filter(title => title === category)[0] | null;
+                                            .map(sheet => sheet.properties.title)
+                                            .filter(title => title === category)[0] | null;
 
                                     if (!!category) {
                                         let addSheetPromise;
@@ -269,9 +279,9 @@ $(() => {
                                             .then(sheet => checkPostExistence(token, SPREAD_SHEET, category, postId))
                                             .then(
                                                 alreadyExist => !alreadyExist &&
-                                                    saveToSpreadSheet(token, SPREAD_SHEET, `${category}!A:E`, [[
-                                                        postId, response.author.name, author.url, url, postText
-                                                    ]])
+                                                saveToSpreadSheet(token, SPREAD_SHEET, `${category}!A:E`, [[
+                                                    postId, response.author.name, author.url, url, postText
+                                                ]])
                                             )
                                     }
                                 }
