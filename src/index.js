@@ -208,7 +208,37 @@ const getFbToken = () => {
     });
 };
 
+const init = () => {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+            chrome.tabs.sendMessage(tabs[0].id, {type: 'post-data'}, response => {
+                console.log('response is coming');
+                console.log(response);
+                getGoogleToken().
+                    then(
+                       token => {
+                           getSheet(token, SPREAD_SHEET)
+                               .then(mainSheetFile => {
+                                   const data = {
+                                       mainSheetFile,
+                                       googleToken : token,
+                                       tabDetails: response
+                                   };
+                                   resolve(data);
+                               })
+                       }
+                )
+            })
+        });
+    });
+};
+
 $(() => {
+    init().then(
+        data => {
+            console.log(data);
+        }
+    );
     $("#btn_submit").on('click', e => {
         getGoogleToken().then(
             token => {
